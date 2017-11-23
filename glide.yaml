@@ -5,3 +5,5 @@ import:
 - package: golang.org/x/net
   subpackages:
   - websocket
+- package: github.com/pkg/errors
+  version: ^0.8.0
