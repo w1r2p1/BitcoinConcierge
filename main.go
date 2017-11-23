@@ -49,30 +49,38 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 	if len(args) > 2 {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Enter the ticker and currency only", msg.Channel))
 		return
-	} else {
-		token, currency = utils.GetTokenAndCurrency(args)
 	}
+
+	if strings.ToUpper(args[0]) == "global" {
+		// TODO
+	}
+
+	token, currency = utils.GetTokenAndCurrency(args)
 
 	if !utils.IsAcceptedToken(token) {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Your cryptocurrency is not supported", msg.Channel))
 		return
-	} else if !utils.IsAcceptedCurrency(currency) {
+	}
+
+	if !utils.IsAcceptedCurrency(currency) {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Your currency is not supported. Please select USD or AUD", msg.Channel))
 		return
-	} else if (utils.IsAcceptedToken(token)) && (utils.IsAcceptedCurrency(currency)) {
+	}
+
+	if (utils.IsAcceptedToken(token)) && (utils.IsAcceptedCurrency(currency)) {
 		price, err := getPrice(token, currency)
 		if err != nil {
 			log.Printf("%+v\n", err)
 			rtm.SendMessage(rtm.NewOutgoingMessage("Internal Server Error", msg.Channel))
-		} else {
-			log.Println("price:", price)
-			rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprint(strings.ToUpper(token), " $", price), msg.Channel))
+			return
 		}
-		return
-	} else {
-		rtm.SendMessage(rtm.NewOutgoingMessage("What you are trying to do is not supported", msg.Channel))
+
+		log.Println("price:", price)
+		rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprint(strings.ToUpper(token), " $", price), msg.Channel))
 		return
 	}
+
+	rtm.SendMessage(rtm.NewOutgoingMessage("What you are trying to do is not supported", msg.Channel))
 }
 
 func main() {
