@@ -1,22 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"BitcoinBot/constants"
-	"BitcoinBot/utils"
 	"BitcoinBot/types"
+	"BitcoinBot/utils"
 	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
 )
 
-func getPrice(ticker, currency string) (string, error){
+func getPrice(ticker, currency string) (string, error) {
 	var token types.TokenInfo
-	url := fmt.Sprint(constants.CoinMarketCapBaseURl, ticker)
+	ticker = strings.ToUpper(ticker)
+	tokenID := constants.AcceptedTokens[ticker]
+	url := fmt.Sprint(constants.CoinMarketCapBaseURl, tokenID, "/?convert=", currency)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -29,10 +32,10 @@ func getPrice(ticker, currency string) (string, error){
 		return "", errors.Wrap(err, "Failed to read the response body")
 	}
 
-	if currency == "AUD" {
-		return token.PriceAud, nil
+	if currency == "AUD" || currency == "aud" {
+		return token[0].PriceAud, nil
 	}
-	return token.PriceUsd, nil
+	return token[0].PriceUsd, nil
 }
 
 func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
@@ -45,26 +48,30 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 
 	if len(args) > 2 {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Enter the ticker and currency only", msg.Channel))
-	} else if len(args) < 1 {
-		rtm.SendMessage(rtm.NewOutgoingMessage("Hey I am your BTC assistant", msg.Channel))
+		return
 	} else {
 		token, currency = utils.GetTokenAndCurrency(args)
 	}
 
 	if !utils.IsAcceptedToken(token) {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Your cryptocurrency is not supported", msg.Channel))
+		return
 	} else if !utils.IsAcceptedCurrency(currency) {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Your currency is not supported. Please select USD or AUD", msg.Channel))
-	} else if utils.IsAcceptedToken(text) && utils.IsAcceptedCurrency(currency) {
+		return
+	} else if (utils.IsAcceptedToken(token)) && (utils.IsAcceptedCurrency(currency)) {
 		price, err := getPrice(token, currency)
 		if err != nil {
-			fmt.Printf("%+v\n", err)
+			log.Printf("%+v\n", err)
 			rtm.SendMessage(rtm.NewOutgoingMessage("Internal Server Error", msg.Channel))
-			return
+		} else {
+			log.Println("price:", price)
+			rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprint(strings.ToUpper(token), " $", price), msg.Channel))
 		}
-		rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprint(token, " ", price), msg.Channel))
+		return
 	} else {
 		rtm.SendMessage(rtm.NewOutgoingMessage("What you are trying to do is not supported", msg.Channel))
+		return
 	}
 }
 
@@ -81,8 +88,7 @@ Loop:
 			fmt.Print("Event Received: ")
 			switch ev := msg.Data.(type) {
 			case *slack.ConnectedEvent:
-				fmt.Println("Connection counter:", ev.ConnectionCount)
-				fmt.Println("Bot ID:", ev.Info.User.ID)
+				log.Println("Bot is connected")
 
 			case *slack.MessageEvent:
 				fmt.Printf("Message: %v\n", ev)

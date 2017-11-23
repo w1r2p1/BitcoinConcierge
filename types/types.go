@@ -1,6 +1,6 @@
 package types
 
-type TokenInfo struct {
+type TokenInfo []struct {
 	ID               string `json:"id"`
 	Name             string `json:"name"`
 	Symbol           string `json:"symbol"`
