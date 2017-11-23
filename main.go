@@ -60,6 +60,7 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 		if err != nil {
 			fmt.Printf("%+v\n", err)
 			rtm.SendMessage(rtm.NewOutgoingMessage("Internal Server Error", msg.Channel))
+			return
 		}
 		rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprint(token, " ", price), msg.Channel))
 	} else {
