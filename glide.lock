@@ -1,10 +1,16 @@
-hash: 8d90bf0f66057e10de854c308c7d895ae19b929ae0792bd75992c812b9e86e97
-updated: 2017-11-23T12:55:19.837223344+11:00
+hash: 8023447411b67beb4764179025b0d5d718f9f7c16f4bae47baf7fdd932c3c433
+updated: 2017-12-02T23:25:27.556493763+11:00
 imports:
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/mux
+  version: 7f08801859139f86dfafd1c296e2cba9a80d292e
 - name: github.com/nlopes/slack
   version: c86337c0ef2486a15edd804355d9c73d2f2caed1
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/urfave/negroni
+  version: 5dbbc83f748fc3ad38585842b0aedab546d0ea1e
 - name: golang.org/x/net
   version: a337091b0525af65de94df2eb7e98bd9962dcbe2
   subpackages:

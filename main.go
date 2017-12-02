@@ -1,42 +1,17 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
-	"BitcoinBot/constants"
-	"BitcoinBot/types"
+	"BitcoinBot/routers"
 	"BitcoinBot/utils"
 	"github.com/nlopes/slack"
-	"github.com/pkg/errors"
+	"github.com/urfave/negroni"
 )
-
-func getPrice(ticker, currency string) (string, error) {
-	var token types.TokenInfo
-	ticker = strings.ToUpper(ticker)
-	tokenID := constants.AcceptedTokens[ticker]
-	url := fmt.Sprint(constants.CoinMarketCapBaseURl, tokenID, "/?convert=", currency)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to contact coinmarket server")
-	}
-
-	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(&token)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to read the response body")
-	}
-
-	if currency == "AUD" || currency == "aud" {
-		return token[0].PriceAud, nil
-	}
-	return token[0].PriceUsd, nil
-}
 
 func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 	var token, currency string
@@ -68,7 +43,7 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 	}
 
 	if (utils.IsAcceptedToken(token)) && (utils.IsAcceptedCurrency(currency)) {
-		price, err := getPrice(token, currency)
+		price, err := utils.GetPrice(token, currency)
 		if err != nil {
 			log.Printf("%+v\n", err)
 			rtm.SendMessage(rtm.NewOutgoingMessage("Internal Server Error", msg.Channel))
@@ -83,11 +58,12 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 	rtm.SendMessage(rtm.NewOutgoingMessage("What you are trying to do is not supported", msg.Channel))
 }
 
-func main() {
+func runSlackBot() {
 	token := os.Getenv("SLACK_TOKEN")
 	api := slack.New(token)
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
+	log.Println("Slack RTM is running")
 
 Loop:
 	for {
@@ -119,4 +95,21 @@ Loop:
 			}
 		}
 	}
+}
+
+func runWebServer() {
+	router := routers.InitRoutes()
+	n := negroni.Classic()
+	n.UseHandler(router)
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: n,
+	}
+	log.Println("Server is listening on port 8080")
+	server.ListenAndServe()
+}
+
+func main() {
+	go runSlackBot()
+	go runWebServer()
 }

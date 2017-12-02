@@ -20,3 +20,13 @@ type TokenInfo []struct {
 	Two4HVolumeAud   string `json:"24h_volume_aud"`
 	MarketCapAud     string `json:"market_cap_aud"`
 }
+
+type TokenPrice struct {
+	Ticker string `json:"ticker"`
+	Price  string `json:"price"`
+	Unit   string `json:"unit"`
+}
+
+type TokenPrices struct {
+	Data []TokenPrice
+}

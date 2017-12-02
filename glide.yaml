@@ -7,3 +7,7 @@ import:
   - websocket
 - package: github.com/pkg/errors
   version: ^0.8.0
+- package: github.com/gorilla/mux
+  version: ^1.6.0
+- package: github.com/urfave/negroni
+  version: ^0.3.0
