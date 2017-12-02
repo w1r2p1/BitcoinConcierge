@@ -1,9 +1,11 @@
 # BitcoinBot
 **`WIP`**
 
-A bot in Slack that can update a channel about current price of cryptocurrencies. This can be done via slash commands or prices are notified to the channel hourly
+A cryptocurrency helper that can be integrated with Google Assistant, Stride, Slack ... to track prices and volatility. Users can transfer coins on chat channels.
 
-How to run this bot:
+## Usage
+
+How to run this bot on Slack:
 ```
 brew install glide
 glide install
@@ -15,3 +17,8 @@ To run inside a docker container:
 export SLACK_TOKEN="XXX"
 bin/run.sh
 ```
+
+## Roadmap
+* Integrate with Google Assitant
+* Transfer coins on chat channels
+* User deep learning to make predictions about future prices
