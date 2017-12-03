@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -36,7 +35,7 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 	token, currency = common.GetTokenAndCurrency(args)
 
 	if strings.ToLower(args[0]) == "global" {
-		var tokenDescriptionArr [][]byte
+		var tokenDescriptionArr []string
 		tokenPrices, err := common.GetTokenPrices(strings.ToUpper(currency))
 		if err != nil {
 			log.Printf("%+v\n", err)
@@ -45,12 +44,15 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 		}
 
 		for _, token := range tokenPrices {
-			tokenDescriptionBytes := [][]byte{[]byte(token.Ticker), []byte("$" + token.Price), []byte(token.Unit)}
-			tokenDescription := bytes.Join(tokenDescriptionBytes, []byte(" "))
+			tokenDescription, err := token.Description()
+			if err != nil {
+				log.Printf("%+v\n", err)
+				continue
+			}
 			tokenDescriptionArr = append(tokenDescriptionArr, tokenDescription)
 		}
 
-		response := string(bytes.Join(tokenDescriptionArr, []byte("\n")))
+		response := strings.Join(tokenDescriptionArr, "\n")
 		rtm.SendMessage(rtm.NewOutgoingMessage(response, msg.Channel))
 		return
 	}
