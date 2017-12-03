@@ -22,4 +22,4 @@ bin/run.sh
 * Add unit and integration tests
 * Integrate with Google Assitant
 * Transfer coins on chat channels
-* User deep learning to make predictions about future prices
+* Use deep learning to make predictions about future prices

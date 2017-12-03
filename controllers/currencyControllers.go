@@ -5,46 +5,52 @@ import (
 	"net/http"
 	"strings"
 
-	"BitcoinBot/constants"
-	"BitcoinBot/types"
-	"BitcoinBot/utils"
+	"BitcoinBot/common"
+	"BitcoinBot/models"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
 func GetPrice(w http.ResponseWriter, r *http.Request) {
-	var price, ticker string
-	var err error
+	var ticker string
+	var isAcceptedCrypto bool
 	vars := mux.Vars(r)
-	currency := vars["currency"]
-	key := r.FormValue("unit")
+	cryptocurrency := vars["cryptocurrency"]
+	queries := r.URL.Query()
+	currency := queries.Get("unit")
 
-	for k, val := range constants.AcceptedTokens {
-		if val == strings.ToLower(currency) {
-			ticker = k
-			price, err = utils.GetPrice(ticker, key)
-			break
-		}
+	if currency == "" {
+		currency = "AUD"
 	}
 
+	if ticker, isAcceptedCrypto = common.IsAcceptedToken(cryptocurrency); !isAcceptedCrypto {
+		common.DisplayError(w, nil, "This cryptocurrency is not supported", 404)
+	}
+
+	if !common.IsAcceptedCurrency(currency) {
+		common.DisplayError(w, nil, "This currency is not supported", 404)
+	}
+
+	price, err := common.GetPrice(ticker, strings.ToUpper(currency))
 	if err != nil {
-		utils.DisplayError(w, err, "Failed to get price of the token", 500)
+		common.DisplayError(w, err, "Failed to get price of the token", 500)
 	}
-	tokenPrice := types.TokenPrice{
+	tokenPrice := models.TokenPrice{
 		Ticker: ticker,
 		Price:  price,
 		Unit:   currency,
 	}
 
-	if j, err := json.Marshal(tokenPrice); err != nil {
+	j, err := json.Marshal(tokenPrice)
+	if err == nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.WriteHeader(j)
+		w.Write(j)
 	} else {
-		utils.DisplayError(
+		common.DisplayError(
 			w,
 			errors.Wrap(err, "Failed to parse json"),
-			"Unexpected error",
+			"Failed to parse response from upstream server",
 			500,
 		)
 	}

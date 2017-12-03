@@ -1,6 +1,8 @@
-package types
+package models
 
-type TokenInfo []struct {
+type Tokens []TokenInfo
+
+type TokenInfo struct {
 	ID               string `json:"id"`
 	Name             string `json:"name"`
 	Symbol           string `json:"symbol"`
@@ -25,8 +27,4 @@ type TokenPrice struct {
 	Ticker string `json:"ticker"`
 	Price  string `json:"price"`
 	Unit   string `json:"unit"`
-}
-
-type TokenPrices struct {
-	Data []TokenPrice
 }

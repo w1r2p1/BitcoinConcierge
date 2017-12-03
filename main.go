@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
+	"BitcoinBot/common"
 	"BitcoinBot/routers"
-	"BitcoinBot/utils"
 	"github.com/nlopes/slack"
 	"github.com/urfave/negroni"
 )
@@ -30,20 +31,20 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 		// TODO
 	}
 
-	token, currency = utils.GetTokenAndCurrency(args)
+	token, currency = common.GetTokenAndCurrency(args)
 
-	if !utils.IsAcceptedToken(token) {
+	if !common.IsAcceptedTicker(token) {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Your cryptocurrency is not supported", msg.Channel))
 		return
 	}
 
-	if !utils.IsAcceptedCurrency(currency) {
+	if !common.IsAcceptedCurrency(currency) {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Your currency is not supported. Please select USD or AUD", msg.Channel))
 		return
 	}
 
-	if (utils.IsAcceptedToken(token)) && (utils.IsAcceptedCurrency(currency)) {
-		price, err := utils.GetPrice(token, currency)
+	if (common.IsAcceptedTicker(token)) && (common.IsAcceptedCurrency(currency)) {
+		price, err := common.GetPrice(token, currency)
 		if err != nil {
 			log.Printf("%+v\n", err)
 			rtm.SendMessage(rtm.NewOutgoingMessage("Internal Server Error", msg.Channel))
@@ -58,7 +59,7 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 	rtm.SendMessage(rtm.NewOutgoingMessage("What you are trying to do is not supported", msg.Channel))
 }
 
-func runSlackBot() {
+func runSlackBot(wg *sync.WaitGroup) {
 	token := os.Getenv("SLACK_TOKEN")
 	api := slack.New(token)
 	rtm := api.NewRTM()
@@ -95,9 +96,10 @@ Loop:
 			}
 		}
 	}
+	wg.Done()
 }
 
-func runWebServer() {
+func runWebServer(wg *sync.WaitGroup) {
 	router := routers.InitRoutes()
 	n := negroni.Classic()
 	n.UseHandler(router)
@@ -107,9 +109,15 @@ func runWebServer() {
 	}
 	log.Println("Server is listening on port 8080")
 	server.ListenAndServe()
+	wg.Done()
 }
 
 func main() {
-	go runSlackBot()
-	go runWebServer()
+	log.Println("Running both webserver and slack bot")
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go runWebServer(&wg)
+	wg.Add(1)
+	go runSlackBot(&wg)
+	wg.Wait()
 }

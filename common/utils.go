@@ -1,4 +1,4 @@
-package utils
+package common
 
 import (
 	"encoding/json"
@@ -7,16 +7,25 @@ import (
 	"strings"
 
 	"BitcoinBot/constants"
-	"BitcoinBot/types"
+	"BitcoinBot/models"
 	"github.com/pkg/errors"
 )
 
-func IsAcceptedToken(ticker string) bool {
+func IsAcceptedTicker(ticker string) bool {
 	ticker = strings.ToUpper(ticker)
 	if _, ok := constants.AcceptedTokens[ticker]; ok {
 		return true
 	}
 	return false
+}
+
+func IsAcceptedToken(name string) (string, bool) {
+	for k, val := range constants.AcceptedTokens {
+		if val == strings.ToLower(name) {
+			return k, true
+		}
+	}
+	return "", false
 }
 
 func IsAcceptedCurrency(currency string) bool {
@@ -30,7 +39,7 @@ func IsAcceptedCurrency(currency string) bool {
 }
 
 func GetPrice(ticker, currency string) (string, error) {
-	var token types.TokenInfo
+	var token models.Tokens
 	ticker = strings.ToUpper(ticker)
 	tokenID := constants.AcceptedTokens[ticker]
 	url := fmt.Sprint(constants.CoinMarketCapBaseURl, tokenID, "/?convert=", currency)
@@ -52,8 +61,31 @@ func GetPrice(ticker, currency string) (string, error) {
 	return token[0].PriceUsd, nil
 }
 
-func GetPrices(currency string) (types.TokenPrices, error) {
-	// TODO
+func GetPrices(currency string) ([]models.TokenPrice, error) {
+	var tokens models.Tokens
+	var tokenPrices []models.TokenPrice
+	url := fmt.Sprint(constants.CoinMarketCapBaseURl, "/?convert=", currency)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to contact coinmarket server")
+	}
+
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(&tokens)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to read the response body")
+	}
+
+	for _, token := range tokens {
+		tokenPrice := models.TokenPrice{
+			Ticker: token.Symbol,
+			Price: selectPriceField(currency, token),
+			Unit: currency,
+		}
+		tokenPrices = append(tokenPrices, tokenPrice)
+	}
+	return tokenPrices, nil
 }
 
 func GetTokenAndCurrency(args []string) (string, string) {
@@ -65,4 +97,11 @@ func GetTokenAndCurrency(args []string) (string, string) {
 		currency = args[1]
 	}
 	return token, currency
+}
+
+func selectPriceField(currency string, token models.TokenInfo) string {
+	if currency == "AUD" || currency == "aud" {
+		return token.PriceAud
+	}
+	return token.PriceUsd
 }
