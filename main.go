@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -27,11 +28,32 @@ func respond(rtm *slack.RTM, msg *slack.MessageEvent, prefix string) {
 		return
 	}
 
-	if strings.ToUpper(args[0]) == "global" {
-		// TODO
+	if strings.ToLower(args[0]) == "global" && len(args) == 2 {
+		rtm.SendMessage(rtm.NewOutgoingMessage("global command can only be used only. Try `global`", msg.Channel))
+		return
 	}
 
 	token, currency = common.GetTokenAndCurrency(args)
+
+	if strings.ToLower(args[0]) == "global" {
+		var tokenDescriptionArr [][]byte
+		tokenPrices, err := common.GetTokenPrices(strings.ToUpper(currency))
+		if err != nil {
+			log.Printf("%+v\n", err)
+			rtm.SendMessage(rtm.NewOutgoingMessage("Internal Server Error", msg.Channel))
+			return
+		}
+
+		for _, token := range tokenPrices {
+			tokenDescriptionBytes := [][]byte{[]byte(token.Ticker), []byte("$" + token.Price), []byte(token.Unit)}
+			tokenDescription := bytes.Join(tokenDescriptionBytes, []byte(" "))
+			tokenDescriptionArr = append(tokenDescriptionArr, tokenDescription)
+		}
+
+		response := string(bytes.Join(tokenDescriptionArr, []byte("\n")))
+		rtm.SendMessage(rtm.NewOutgoingMessage(response, msg.Channel))
+		return
+	}
 
 	if !common.IsAcceptedTicker(token) {
 		rtm.SendMessage(rtm.NewOutgoingMessage("Your cryptocurrency is not supported", msg.Channel))

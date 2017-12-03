@@ -61,7 +61,7 @@ func GetPrice(ticker, currency string) (string, error) {
 	return token[0].PriceUsd, nil
 }
 
-func GetPrices(currency string) ([]models.TokenPrice, error) {
+func GetTokenPrices(currency string) ([]models.TokenPrice, error) {
 	var tokens models.Tokens
 	var tokenPrices []models.TokenPrice
 	url := fmt.Sprint(constants.CoinMarketCapBaseURl, "/?convert=", currency)
@@ -78,12 +78,14 @@ func GetPrices(currency string) ([]models.TokenPrice, error) {
 	}
 
 	for _, token := range tokens {
-		tokenPrice := models.TokenPrice{
-			Ticker: token.Symbol,
-			Price: selectPriceField(currency, token),
-			Unit: currency,
+		if IsAcceptedTicker(token.Symbol) {
+			tokenPrice := models.TokenPrice{
+				Ticker: token.Symbol,
+				Price: selectPriceField(currency, token),
+				Unit: currency,
+			}
+			tokenPrices = append(tokenPrices, tokenPrice)
 		}
-		tokenPrices = append(tokenPrices, tokenPrice)
 	}
 	return tokenPrices, nil
 }

@@ -57,5 +57,28 @@ func GetPrice(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPrices(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	queries := r.URL.Query()
+	currency := queries.Get("unit")
+	if currency == "" {
+		currency = "AUD"
+	}
+
+	tokenPrices, err := common.GetTokenPrices(strings.ToUpper(currency))
+	if err != nil {
+		common.DisplayError(w, err, "Failed to get price of the token", 500)
+	}
+
+	j, err := json.Marshal(tokenPrices)
+	if err == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(j)
+	} else {
+		common.DisplayError(
+			w,
+			errors.Wrap(err, "Failed to parse json"),
+			"Failed to parse response from upstream server",
+			500,
+		)
+	}
 }
